@@ -11,7 +11,7 @@ const redisPort = "6379"
 
 func TestGetProxyKeyBase(t *testing.T) {
 	expected := "e443bff3430372ffadbfb7d6c0d5755f8f26d030"
-	actual := getProxyKeyBase("environment", "test")
+	actual := GetProxyKeyBase("environment", "test")
 
 	if actual != expected {
 		t.Errorf("Expected '%s' but was '%s'.", expected, actual)
@@ -20,7 +20,7 @@ func TestGetProxyKeyBase(t *testing.T) {
 
 func TestGetProxyRegoKey(t *testing.T) {
 	expected := "R3d384b6d84b2fb0d12fb25db6335f0aed174a304"
-	actual := getProxyRegoKey("ef66f0f10e112358a0e6208246ffb4962355113b", "test")
+	actual := GetProxyRegoKey("ef66f0f10e112358a0e6208246ffb4962355113b", "test")
 
 	if actual != expected {
 		t.Errorf("Expected '%s' but was '%s'.", expected, actual)

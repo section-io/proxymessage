@@ -21,8 +21,8 @@ func TestEnvironmentCleanupOldQueue(t *testing.T) {
 	proxyName := prefix + "proxyName"
 	redisClient := redis.NewClient(&redis.Options{Addr: redisAddress})
 	redisClient.SAdd(envStackKey, proxyName)
-	registrationKey := getProxyRegoKey(proxyBaseKey, proxyName)
-	listKey := getProxyListKeyPrefix(proxyBaseKey, proxyName) + "_A"
+	registrationKey := GetProxyRegoKey(proxyBaseKey, proxyName)
+	listKey := GetProxyListKeyPrefix(proxyBaseKey, proxyName) + "_A"
 	redisClient.ZAdd(registrationKey, *&redis.Z{Score: float64(time.Now().UTC().Unix()) - 90, Member: listKey}).Result()
 	redisClient.LPush(listKey, "listitem")
 

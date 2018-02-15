@@ -103,7 +103,7 @@ func (pmc *Environment) cleanup() bool {
 	}
 
 	for _, proxy := range proxies {
-		proxyRegoKey := getProxyRegoKey(pmc.proxyBaseKey, proxy)
+		proxyRegoKey := GetProxyRegoKey(pmc.proxyBaseKey, proxy)
 
 		err := pmc.redisClient.Watch(func(tx *redis.Tx) error {
 			//Get registrations older than timeout

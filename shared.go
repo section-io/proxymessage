@@ -11,28 +11,28 @@ func sha1FromString(s string) string {
 }
 
 // PROXY_KEY_BASE - A per-environment value given to Environment Provisioners - it can be used to derive proxy level redis key names, but provides no insight into keys for other environments.
-func getProxyKeyBase(environmentID string, sourceKey string) string {
+func GetProxyKeyBase(environmentID string, sourceKey string) string {
 	s := environmentID + sourceKey + "proxy-queue-salt"
 	return sha1FromString(s)
 }
 
 // PROXY_REGO_KEY - A per environment proxy key used to register a queue to receive messages
-func getProxyRegoKey(proxyKeyBase, proxyName string) string {
+func GetProxyRegoKey(proxyKeyBase, proxyName string) string {
 	s := proxyKeyBase + proxyName + "proxy-rego-salt"
 	return "R" + sha1FromString(s)
 }
 
 //LIST_KEY_PREFIX - A per environment proxy key that enrollments will be restricted to
-func getProxyListKeyPrefix(proxyKeyBase, proxyName string) string {
+func GetProxyListKeyPrefix(proxyKeyBase, proxyName string) string {
 	s := proxyKeyBase + proxyName + "proxy-queue-salt"
 	return "P" + sha1FromString(s)
 }
 
-func getEnvDestKey(environmentID string, sourceKey string) string {
+func GetEnvDestKey(environmentID string, sourceKey string) string {
 	s := environmentID + sourceKey + "environment-queue-salt"
 	return "E" + sha1FromString(s)
 }
 
-func getEnvStackKey(environmentID string, sourceKey string) string {
-	return "S" + getEnvDestKey(environmentID, sourceKey)
+func GetEnvStackKey(environmentID string, sourceKey string) string {
+	return "S" + GetEnvDestKey(environmentID, sourceKey)
 }
