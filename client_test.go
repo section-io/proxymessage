@@ -1,6 +1,8 @@
 package proxymessage
 
 import (
+	"bytes"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -117,4 +119,37 @@ func TestReRegistration(t *testing.T) {
 	if actual.Before(expectedLower) || actual.After(expectedUpper) {
 		t.Errorf("Expected connection between '%s'and '%s' but was '%s'.", expectedLower, expectedUpper, actual)
 	}
+}
+
+func TestDebugLog(t *testing.T) {
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	os.Clearenv()
+	os.Setenv("DEBUG", "1")
+	NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
+	waitDuration, _ := time.ParseDuration("4s")
+	time.Sleep(waitDuration)
+
+	assert.Contains(t, buf.String(), "Register call complete")
+}
+
+func TestNoDebugLog(t *testing.T) {
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	os.Clearenv()
+	NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
+	waitDuration, _ := time.ParseDuration("4s")
+	time.Sleep(waitDuration)
+
+	assert.NotContains(t, buf.String(), "Register call complete")
 }
