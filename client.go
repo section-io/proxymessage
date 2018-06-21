@@ -13,6 +13,8 @@ const defaultRegistrationTimeoutSeconds = 60
 const defaultListKeyPrefix = "pod-"
 const defaultListKeySuffix = "list"
 
+var debugLog = false
+
 // Client is the message client for proxy pod handlers
 type Client struct {
 	redisClient                *redis.Client
@@ -27,6 +29,9 @@ type Client struct {
 
 // NewClient creates a new proxy message client
 func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix string, registrationTimeoutSeconds int) *Client {
+
+	debugLog = os.Getenv("DEBUG") != ""
+
 	if registrationTimeoutSeconds == 0 {
 		registrationTimeoutSeconds = defaultRegistrationTimeoutSeconds
 	}
@@ -104,7 +109,9 @@ func (pmc *Client) registerLoop() {
 	tickChannel := time.Tick(time.Duration(pmc.registrationTimeoutSeconds * int(time.Second)))
 	for tickTime := range tickChannel {
 		res := pmc.registerListKey()
-		log.Println("Register call complete: ", tickTime, res)
+		if debugLog {
+			log.Println("Register call complete: ", tickTime, res)
+		}
 	}
 }
 

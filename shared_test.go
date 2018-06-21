@@ -1,6 +1,10 @@
 package proxymessage
 
-import "testing"
+import (
+	"log"
+	"os"
+	"testing"
+)
 
 //import "strings"
 //import "time"
@@ -24,5 +28,12 @@ func TestGetProxyRegoKey(t *testing.T) {
 
 	if actual != expected {
 		t.Errorf("Expected '%s' but was '%s'.", expected, actual)
+	}
+}
+
+func MustSetEnv(name string, value string) {
+	err := os.Setenv(name, value)
+	if err != nil {
+		log.Panic(err)
 	}
 }
