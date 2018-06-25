@@ -101,12 +101,12 @@ func TestListKeySuffix(t *testing.T) {
 
 func TestInitialRegistration(t *testing.T) {
 
-	proxyMessageClient := NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
-	//Should be registered within 2 seconds
+	expectedLower := time.Now()
 	dur, _ := time.ParseDuration("2s")
+	//Should be registered within 2 seconds
+	proxyMessageClient := NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
 	time.Sleep(dur)
 	expectedUpper := time.Now()
-	expectedLower := expectedUpper.Add(-dur)
 	actual := proxyMessageClient.lastRegistrationSuccess //time.Now().Sub()
 
 	if actual.Before(expectedLower) || actual.After(expectedUpper) {
@@ -123,7 +123,7 @@ func TestReRegistration(t *testing.T) {
 	time.Sleep(waitDuration)
 	expectedUpper := time.Now()
 	expectedLower := expectedUpper.Add(-lastRegoDuration)
-	actual := proxyMessageClient.lastRegistrationSuccess //time.Now().Sub()
+	actual := proxyMessageClient.lastRegistrationSuccess
 
 	if actual.Before(expectedLower) || actual.After(expectedUpper) {
 		t.Errorf("Expected connection between '%s'and '%s' but was '%s'.", expectedLower, expectedUpper, actual)
