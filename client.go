@@ -1,6 +1,8 @@
 package proxymessage
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -25,6 +27,13 @@ type Client struct {
 	lastRegistrationSuccess time.Time
 
 	InboundMessageChannel chan string
+}
+
+func sha1FromString(s string) string {
+	h := sha1.New()
+	h.Write([]byte(s))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
 }
 
 // NewClient creates a new proxy message client

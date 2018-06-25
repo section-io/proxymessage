@@ -13,6 +13,15 @@ import (
 )
 
 //These tests require a local redis server at 6379
+const redisHost = "127.0.0.1"
+const redisPort = "6379"
+
+func mustSetEnv(name string, value string) {
+	err := os.Setenv(name, value)
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
 func TestLoadingViaEnvVars(t *testing.T) {
 
@@ -23,12 +32,12 @@ func TestLoadingViaEnvVars(t *testing.T) {
 	expectedTimeout := 10
 
 	os.Clearenv()
-	MustSetEnv("REDIS_HOST", redisHost)
-	MustSetEnv("REDIS_PORT", redisPort)
-	MustSetEnv("PROXY_REGO_KEY", expectedRegoKey)
-	MustSetEnv("LIST_KEY_PREFIX", expectedPrefix)
-	MustSetEnv("LIST_KEY_SUFFIX", suffix)
-	MustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", strconv.Itoa(expectedTimeout))
+	mustSetEnv("REDIS_HOST", redisHost)
+	mustSetEnv("REDIS_PORT", redisPort)
+	mustSetEnv("PROXY_REGO_KEY", expectedRegoKey)
+	mustSetEnv("LIST_KEY_PREFIX", expectedPrefix)
+	mustSetEnv("LIST_KEY_SUFFIX", suffix)
+	mustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", strconv.Itoa(expectedTimeout))
 
 	proxyMessageClient := NewClientFromEnvVars()
 
@@ -40,12 +49,12 @@ func TestLoadingViaEnvVars(t *testing.T) {
 func TestLoadingViaEnvVarsInvalidTimeout(t *testing.T) {
 
 	os.Clearenv()
-	MustSetEnv("REDIS_HOST", redisHost)
-	MustSetEnv("REDIS_PORT", redisPort)
-	MustSetEnv("PROXY_REGO_KEY", "registrationKey")
-	MustSetEnv("LIST_KEY_PREFIX", "listKeyPrefix")
-	MustSetEnv("LIST_KEY_SUFFIX", "listKeySuffix")
-	MustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", "Invalid")
+	mustSetEnv("REDIS_HOST", redisHost)
+	mustSetEnv("REDIS_PORT", redisPort)
+	mustSetEnv("PROXY_REGO_KEY", "registrationKey")
+	mustSetEnv("LIST_KEY_PREFIX", "listKeyPrefix")
+	mustSetEnv("LIST_KEY_SUFFIX", "listKeySuffix")
+	mustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", "Invalid")
 
 	assert.PanicsWithValue(t, "If MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS is set it must be a valid integer.", func() { NewClientFromEnvVars() })
 }
@@ -55,11 +64,11 @@ func TestLoadingViaEnvVarsDefaultTimeout(t *testing.T) {
 	expectedTimeoutSeconds := 60
 
 	os.Clearenv()
-	MustSetEnv("REDIS_HOST", redisHost)
-	MustSetEnv("REDIS_PORT", redisPort)
-	MustSetEnv("PROXY_REGO_KEY", "registrationKey")
-	MustSetEnv("LIST_KEY_PREFIX", "listKeyPrefix")
-	MustSetEnv("LIST_KEY_SUFFIX", "listKeySuffix")
+	mustSetEnv("REDIS_HOST", redisHost)
+	mustSetEnv("REDIS_PORT", redisPort)
+	mustSetEnv("PROXY_REGO_KEY", "registrationKey")
+	mustSetEnv("LIST_KEY_PREFIX", "listKeyPrefix")
+	mustSetEnv("LIST_KEY_SUFFIX", "listKeySuffix")
 
 	proxyMessageClient := NewClientFromEnvVars()
 
@@ -130,7 +139,7 @@ func TestDebugLog(t *testing.T) {
 	}()
 
 	os.Clearenv()
-	MustSetEnv("DEBUG", "1")
+	mustSetEnv("DEBUG", "1")
 	NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
 	waitDuration, _ := time.ParseDuration("4s")
 	time.Sleep(waitDuration)
