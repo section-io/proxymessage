@@ -1,6 +1,8 @@
 package proxymessage
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -25,6 +27,13 @@ type Client struct {
 	lastRegistrationSuccess time.Time
 
 	InboundMessageChannel chan string
+}
+
+func sha1FromString(s string) string {
+	h := sha1.New()
+	h.Write([]byte(s))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
 }
 
 // NewClient creates a new proxy message client
@@ -129,13 +138,23 @@ func (pmc *Client) registerListKey() bool {
 }
 
 func (pmc *Client) receiveLoop() {
+	redisErrorCount := 0
 	for {
 		rawMessage, brpopErr := pmc.redisClient.BRPop(0, pmc.listKey).Result()
 
 		if brpopErr != nil {
 			log.Println("BRPop error:", brpopErr)
+			// avoid CPU spin when Redis errors consecutively
+			redisErrorCount++
+			// TODO beacon error for alerting if redisErrorCount exceeds some threshold
+			if redisErrorCount > 3 {
+				log.Printf("sleeping after %d consecutive Redis errors\n", redisErrorCount)
+				time.Sleep(1 * time.Second)
+			}
 			continue
 		}
+		redisErrorCount = 0
+
 		if len(rawMessage) != 2 {
 			log.Println("Unexpected BRPop result length:", len(rawMessage))
 			continue
