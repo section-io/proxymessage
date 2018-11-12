@@ -14,6 +14,7 @@ import (
 const defaultRegistrationTimeoutSeconds = 60
 const defaultListKeyPrefix = "pod-"
 const defaultListKeySuffix = "list"
+const defaultBrpopTimeout = 5 * time.Minute
 
 var debugLog = false
 
@@ -69,7 +70,7 @@ func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix strin
 	return pmc
 }
 
-// NewClient creates a new proxy message client from environment variables
+// NewClientFromEnvVars creates a new proxy message client from environment variables
 func NewClientFromEnvVars() *Client {
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
@@ -138,18 +139,51 @@ func (pmc *Client) registerListKey() bool {
 }
 
 func (pmc *Client) receiveLoop() {
+
+	brpopTimeout := defaultBrpopTimeout
+
+	//Allow the timeout to be overriden via environment variable
+	if os.Getenv("REDIS_BRPOP_TIMEOUT_SECONDS") != "" {
+		timeoutSeconds, err := strconv.Atoi(os.Getenv("REDIS_BRPOP_TIMEOUT_SECONDS"))
+		if err != nil {
+			log.Printf("REDIS_BRPOP_TIMEOUT_SECONDS value '%s' is not a valid int, setting timeout to default %d: %#v\n", os.Getenv("REDIS_BRPOP_TIMEOUT_SECONDS"), defaultBrpopTimeout, err)
+		} else {
+			log.Printf("Overriding redis BRPOP timeout to REDIS_BRPOP_TIMEOUT_SECONDS value of %d seconds", timeoutSeconds)
+			brpopTimeout = time.Duration(timeoutSeconds) * time.Second
+		}
+	}
+
 	redisErrorCount := 0
 	for {
-		rawMessage, brpopErr := pmc.redisClient.BRPop(0, pmc.listKey).Result()
+		rawMessage, brpopErr := pmc.redisClient.BRPop(brpopTimeout, pmc.listKey).Result()
 
 		if brpopErr != nil {
+			if brpopErr == redis.Nil {
+				// Timeout was reached at the server after brpopTimeout, this is not an error state
+				// it just means that no messages were received during the timeout window and the
+				// brpop will be restarted.
+				if debugLog {
+					log.Println("nil response from redis BRPOP, timeout expired")
+				}
+				redisErrorCount = 0
+				continue
+			}
+
 			log.Println("BRPop error:", brpopErr)
 			// avoid CPU spin when Redis errors consecutively
 			redisErrorCount++
+
 			// TODO beacon error for alerting if redisErrorCount exceeds some threshold
 			if redisErrorCount > 3 {
-				log.Printf("sleeping after %d consecutive Redis errors\n", redisErrorCount)
-				time.Sleep(1 * time.Second)
+				var sleepSeconds int
+				if redisErrorCount > 30 {
+					sleepSeconds = 30
+				} else {
+					sleepSeconds = redisErrorCount
+				}
+
+				log.Printf("sleeping for %d seconds after %d consecutive Redis errors\n", sleepSeconds, redisErrorCount)
+				time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			}
 			continue
 		}
