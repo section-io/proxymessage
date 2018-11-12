@@ -69,7 +69,7 @@ func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix strin
 	return pmc
 }
 
-// NewClient creates a new proxy message client from environment variables
+// NewClientFromEnvVars creates a new proxy message client from environment variables
 func NewClientFromEnvVars() *Client {
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
