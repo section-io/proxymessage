@@ -171,14 +171,19 @@ func (pmc *Client) receiveLoop() {
 
 			log.Println("BRPop error:", brpopErr)
 			// avoid CPU spin when Redis errors consecutively
-			if redisErrorCount < 30 {
-				redisErrorCount++
-			}
+			redisErrorCount++
 
 			// TODO beacon error for alerting if redisErrorCount exceeds some threshold
 			if redisErrorCount > 3 {
-				log.Printf("sleeping after %d consecutive Redis errors\n", redisErrorCount)
-				time.Sleep(time.Duration(redisErrorCount) * time.Second)
+				var sleepSeconds int
+				if redisErrorCount > 30 {
+					sleepSeconds = 30
+				} else {
+					sleepSeconds = redisErrorCount
+				}
+
+				log.Printf("sleeping for %d seconds after %d consecutive Redis errors\n", sleepSeconds, redisErrorCount)
+				time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			}
 			continue
 		}
