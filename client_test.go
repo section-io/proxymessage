@@ -46,6 +46,37 @@ func TestLoadingViaEnvVars(t *testing.T) {
 	assert.Equal(t, expectedTimeout, proxyMessageClient.registrationTimeoutSeconds, "proxyMessageClient.registrationKey")
 }
 
+func TestRedisBrpopTimeout(t *testing.T) {
+
+	expectedRegoKey := "registrationKey"
+	expectedPrefix := "listKeyPrefix"
+	suffix := "listKeySuffix"
+	expectedRegistrationTimeout := 10
+
+	os.Clearenv()
+	mustSetEnv("REDIS_HOST", redisHost)
+	mustSetEnv("REDIS_PORT", redisPort)
+	mustSetEnv("PROXY_REGO_KEY", expectedRegoKey)
+	mustSetEnv("LIST_KEY_PREFIX", expectedPrefix)
+	mustSetEnv("LIST_KEY_SUFFIX", suffix)
+	mustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", strconv.Itoa(expectedRegistrationTimeout))
+	mustSetEnv("REDIS_BRPOP_TIMEOUT_SECONDS", "5")
+	mustSetEnv("DEBUG", "true")
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	NewClientFromEnvVars()
+
+	waitDuration, _ := time.ParseDuration("10s")
+	time.Sleep(waitDuration)
+
+	assert.Contains(t, buf.String(), "nil response from redis BRPOP, timeout expired")
+}
+
 func TestLoadingViaEnvVarsInvalidTimeout(t *testing.T) {
 
 	os.Clearenv()
