@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -26,9 +27,14 @@ type Client struct {
 	listKey                    string
 
 	lastRegistrationSuccess time.Time
-
+	// Successful messages come in via this InboundMessageChannel
 	InboundMessageChannel chan string
+	// InfoEventCallback is called with informational string messages related to the redis connection
+	InfoEventCallback InfoEventCallback
 }
+
+// This function is called with informational strings
+type InfoEventCallback func(event string)
 
 func sha1FromString(s string) string {
 	h := sha1.New()
@@ -53,6 +59,8 @@ func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix strin
 	}
 	listKey := listKeyPrefix + "-" + listKeySuffix
 
+	defaultCallback := func(a string) {}
+
 	pmc := &Client{
 		redisClient: redis.NewClient(&redis.Options{
 			Addr: redisAddress,
@@ -61,6 +69,7 @@ func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix strin
 		registrationTimeoutSeconds: registrationTimeoutSeconds,
 		listKey:                    listKey,
 		InboundMessageChannel:      make(chan string),
+		InfoEventCallback:          defaultCallback,
 	}
 
 	go pmc.registerLoop()
@@ -167,6 +176,18 @@ func (pmc *Client) receiveLoop() {
 				}
 				redisErrorCount = 0
 				continue
+			}
+
+			opError, ok := brpopErr.(*net.OpError)
+			if ok {
+				// Timeout was caused by the redis server not sending any message at all
+				// This could be indicative of a connection error but is recoverable
+				if opError.Op == "read" && opError.Timeout() && opError.Temporary() {
+					msg := fmt.Sprintf("Client-side timeout from redis, redis did not respond: %v", opError)
+					log.Print(msg)
+					pmc.InfoEventCallback(msg)
+					continue
+				}
 			}
 
 			log.Println("BRPop error:", brpopErr)
