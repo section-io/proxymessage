@@ -185,7 +185,9 @@ func (pmc *Client) receiveLoop() {
 				if opError.Op == "read" && opError.Timeout() && opError.Temporary() {
 					msg := fmt.Sprintf("Client-side timeout from redis, redis did not respond: %v", opError)
 					log.Print(msg)
-					pmc.InfoEventCallback(msg)
+					if pmc.InfoEventCallback != nil {
+						pmc.InfoEventCallback(msg)
+					}
 					continue
 				}
 			}
