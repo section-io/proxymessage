@@ -17,8 +17,6 @@ const defaultListKeyPrefix = "pod-"
 const defaultListKeySuffix = "list"
 const defaultBrpopTimeout = 5 * time.Minute
 
-var debugLog = false
-
 // Client is the message client for proxy pod handlers
 type Client struct {
 	redisClient                *redis.Client
@@ -31,6 +29,8 @@ type Client struct {
 	InboundMessageChannel chan string
 	// InfoEventCallback is called with informational string messages related to the redis connection
 	InfoEventCallback InfoEventCallback
+
+	DebugLog bool
 }
 
 // This function is called with informational strings
@@ -45,9 +45,6 @@ func sha1FromString(s string) string {
 
 // NewClient creates a new proxy message client
 func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix string, registrationTimeoutSeconds int) *Client {
-
-	debugLog = os.Getenv("DEBUG") != ""
-
 	if registrationTimeoutSeconds == 0 {
 		registrationTimeoutSeconds = defaultRegistrationTimeoutSeconds
 	}
@@ -70,6 +67,8 @@ func NewClient(redisAddress, registrationKey, listKeyPrefix, listKeySuffix strin
 		listKey:                    listKey,
 		InboundMessageChannel:      make(chan string),
 		InfoEventCallback:          defaultCallback,
+
+		DebugLog: os.Getenv("MESSAGE_CLIENT_DEBUG") != "",
 	}
 
 	go pmc.registerLoop()
@@ -128,7 +127,7 @@ func (pmc *Client) registerLoop() {
 	tickChannel := time.Tick(time.Duration(pmc.registrationTimeoutSeconds * int(time.Second)))
 	for tickTime := range tickChannel {
 		res := pmc.registerListKey()
-		if debugLog {
+		if pmc.DebugLog {
 			log.Println("Register call complete: ", tickTime, res)
 		}
 	}
@@ -136,7 +135,7 @@ func (pmc *Client) registerLoop() {
 
 func (pmc *Client) registerListKey() bool {
 	//Returns count of "added" should only be "1" on first add (not updates)
-	_, err := pmc.redisClient.ZAdd(pmc.registrationKey, *&redis.Z{Score: float64(time.Now().UTC().Unix()), Member: pmc.listKey}).Result()
+	_, err := pmc.redisClient.ZAdd(pmc.registrationKey, redis.Z{Score: float64(time.Now().UTC().Unix()), Member: pmc.listKey}).Result()
 
 	if err != nil {
 		log.Println("Registration failure:", err)
@@ -171,7 +170,7 @@ func (pmc *Client) receiveLoop() {
 				// Timeout was reached at the server after brpopTimeout, this is not an error state
 				// it just means that no messages were received during the timeout window and the
 				// brpop will be restarted.
-				if debugLog {
+				if pmc.DebugLog {
 					log.Println("nil response from redis BRPOP, timeout expired")
 				}
 				redisErrorCount = 0

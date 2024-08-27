@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//These tests require a local redis server at 6379
+// These tests require a local redis server at 6379
 const redisHost = "127.0.0.1"
 const redisPort = "6379"
 
@@ -61,7 +61,7 @@ func TestRedisBrpopTimeout(t *testing.T) {
 	mustSetEnv("LIST_KEY_SUFFIX", suffix)
 	mustSetEnv("MESSAGE_CLIENT_REGISTRATION_TIMEOUT_SECONDS", strconv.Itoa(expectedRegistrationTimeout))
 	mustSetEnv("REDIS_BRPOP_TIMEOUT_SECONDS", "5")
-	mustSetEnv("DEBUG", "true")
+	mustSetEnv("MESSAGE_CLIENT_DEBUG", "true")
 
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
@@ -169,8 +169,7 @@ func TestDebugLog(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
-	os.Clearenv()
-	mustSetEnv("DEBUG", "1")
+	t.Setenv("MESSAGE_CLIENT_DEBUG", "1")
 	NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
 	waitDuration, _ := time.ParseDuration("4s")
 	time.Sleep(waitDuration)
@@ -186,7 +185,7 @@ func TestNoDebugLog(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
-	os.Clearenv()
+	t.Setenv("MESSAGE_CLIENT_DEBUG", "")
 	NewClient(redisHost+":"+redisPort, "registrationKey", "listKeyPrefix", "listKeySuffix", 0)
 	waitDuration, _ := time.ParseDuration("4s")
 	time.Sleep(waitDuration)
