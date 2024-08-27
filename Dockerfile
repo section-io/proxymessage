@@ -1,24 +1,21 @@
-FROM golang:1.11-alpine
+FROM golang:1.23-alpine
+
+RUN apk add --no-cache curl redis
 
 ENV CGO_ENABLED=0
 
-RUN apk add --no-cache \
-    redis \
-    git
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.60.1
 
-RUN go get -v \
-    github.com/stretchr/testify \
-    github.com/kisielk/errcheck \
-    gopkg.in/redis.v5
+WORKDIR /app
 
-WORKDIR /go/src/section.io/proxymessage
-COPY *.go ./
+COPY go.mod go.sum ./
+RUN go mod download
 
-RUN gofmt -e -s -d . 2>&1 | tee /gofmt.out && test ! -s /gofmt.out
+COPY . .
 
-RUN go tool vet .
+RUN go build -v ./...
 
-RUN errcheck ./...
+RUN golangci-lint run ./...
 
 # Tests need a running redis server
 RUN nohup sh -c "redis-server &" && \

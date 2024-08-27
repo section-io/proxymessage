@@ -136,7 +136,7 @@ func (pmc *Client) registerLoop() {
 
 func (pmc *Client) registerListKey() bool {
 	//Returns count of "added" should only be "1" on first add (not updates)
-	_, err := pmc.redisClient.ZAdd(pmc.registrationKey, *&redis.Z{Score: float64(time.Now().UTC().Unix()), Member: pmc.listKey}).Result()
+	_, err := pmc.redisClient.ZAdd(pmc.registrationKey, redis.Z{Score: float64(time.Now().UTC().Unix()), Member: pmc.listKey}).Result()
 
 	if err != nil {
 		log.Println("Registration failure:", err)
